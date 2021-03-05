@@ -1,6 +1,13 @@
 #ifndef TINY_PLATFORM_H
 #define TINY_PLATFORM_H
 
+#define ArrayCount(arr) (sizeof((arr)) / (sizeof((arr)[0])))
+
+#define Assert(expression)                                                     \
+  if(!(expression)) {                                                          \
+    *(volatile int *)0 = 0;                                                    \
+  }
+
 #include <stdint.h>
 typedef int8_t int8;
 typedef int16_t int16;

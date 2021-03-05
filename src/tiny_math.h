@@ -3,6 +3,13 @@
 
 #include <math.h>
 
+inline uint32
+FloorReal32ToUint32(real32 v)
+{
+  uint32 result = (uint32)floorf(v);
+  return result;
+}
+
 inline real32
 SquareRoot(real32 v)
 {
@@ -10,8 +17,8 @@ SquareRoot(real32 v)
   return result;
 }
 
-inline int
-Square(int v)
+inline real32
+Square(real32 v)
 {
   real32 result = v * v;
   return result;
@@ -24,6 +31,9 @@ Square(int v)
 union v2 {
   struct {
     real32 x, y;
+  };
+  struct {
+    real32 width, height;
   };
   real32 e[2];
 };
@@ -175,6 +185,13 @@ inline v3
 V3(real32 x, real32 y, real32 z)
 {
   v3 result = { x, y, z };
+  return result;
+}
+
+inline v3
+V3(int x, int y, int z)
+{
+  v3 result = { (real32)x, (real32)y, (real32)z };
   return result;
 }
 
