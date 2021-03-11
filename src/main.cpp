@@ -10,7 +10,7 @@
 
 struct sphere {
   v3 center;
-  real32 radius;
+  f32 radius;
   v3 color;
 };
 
@@ -20,11 +20,11 @@ CanvasToViewport(v2 vp,
   int y,
   int canvsWidth,
   int canvasHeight,
-  real32 projectionD)
+  f32 projectionD)
 {
   v3 result = {};
-  result.x = ((real32)x / (real32)canvsWidth) * vp.width;
-  result.y = ((real32)y / (real32)canvasHeight) * vp.height;
+  result.x = ((f32)x / (f32)canvsWidth) * vp.width;
+  result.y = ((f32)y / (f32)canvasHeight) * vp.height;
   result.z = projectionD;
 
   return result;
@@ -36,11 +36,11 @@ IntersectRaySphere(v3 origin, v3 point, sphere *s)
   v3 d = point - origin;
   v3 co = origin - s->center;
 
-  real32 a = Inner(d, d);
-  real32 b = 2 * Inner(co, d);
-  real32 c = Inner(co, co) - s->radius * s->radius;
+  f32 a = Inner(d, d);
+  f32 b = 2 * Inner(co, d);
+  f32 c = Inner(co, co) - s->radius * s->radius;
 
-  real32 discriminant = Square(b) - 4 * a * c;
+  f32 discriminant = Square(b) - 4 * a * c;
 
   if(discriminant < 0) {
     return V2(INF, INF);
@@ -54,14 +54,9 @@ IntersectRaySphere(v3 origin, v3 point, sphere *s)
 }
 
 v3
-RayTrace(sphere *spheres,
-  int count,
-  v3 origin,
-  v3 point,
-  real32 tMin,
-  real32 tMax)
+RayTrace(sphere *spheres, int count, v3 origin, v3 point, f32 tMin, f32 tMax)
 {
-  real32 closestT = INF;
+  f32 closestT = INF;
   sphere *closestSphere = NULL;
 
   v3 backgroundColor = { 1.0f, 1.0f, 1.0f };
@@ -70,7 +65,7 @@ RayTrace(sphere *spheres,
     sphere *s = spheres + i;
     v2 intersectResult = IntersectRaySphere(origin, point, s);
 
-    real32 v = intersectResult.e[0];
+    f32 v = intersectResult.e[0];
 
     if((v > tMin && v < tMax) && v < closestT) {
       closestT = v;
@@ -93,14 +88,14 @@ RayTrace(sphere *spheres,
   return closestSphere->color;
 }
 
-inline uint32
+inline u32
 ColorToRGBA(v3 color)
 {
-  uint32 r = FloorReal32ToUint32(color.r * 255.0f + 0.5f);
-  uint32 g = FloorReal32ToUint32(color.g * 255.0f + 0.5f);
-  uint32 b = FloorReal32ToUint32(color.b * 255.0f + 0.5f);
-  uint32 a = 255;
-  uint32 result = (uint32)((r << 24) | (g << 16) | (b << 8) | (a << 0));
+  u32 r = FloorReal32ToUint32(color.r * 255.0f + 0.5f);
+  u32 g = FloorReal32ToUint32(color.g * 255.0f + 0.5f);
+  u32 b = FloorReal32ToUint32(color.b * 255.0f + 0.5f);
+  u32 a = 255;
+  u32 result = (u32)((r << 24) | (g << 16) | (b << 8) | (a << 0));
   return result;
 }
 
@@ -139,7 +134,7 @@ RenderRayTracing(void *memory, int pitch, int width, int height)
   v3 origin = { 0.0f, 0.0f, 0.0f };
 
   v2 vp = { 1.0f, 1.0f };
-  real32 projectionD = 1.0f;
+  f32 projectionD = 1.0f;
 
   sphere spheres[3];
 

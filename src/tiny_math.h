@@ -3,24 +3,24 @@
 
 #include <math.h>
 
-inline uint32
-FloorReal32ToUint32(real32 v)
+inline f32
+SquareRoot(f32 value)
 {
-  uint32 result = (uint32)floorf(v);
+  f32 result = sqrtf(value);
   return result;
 }
 
-inline real32
-SquareRoot(real32 v)
+inline f32
+Square(f32 value)
 {
-  real32 result = sqrtf(v);
+  f32 result = value * value;
   return result;
 }
 
-inline real32
-Square(real32 v)
+inline u32
+FloorReal32ToUint32(f32 value)
 {
-  real32 result = v * v;
+  u32 result = (u32)floorf(value);
   return result;
 }
 
@@ -30,12 +30,12 @@ Square(real32 v)
 
 union v2 {
   struct {
-    real32 x, y;
+    f32 x, y;
   };
   struct {
-    real32 width, height;
+    f32 width, height;
   };
-  real32 e[2];
+  f32 e[2];
 };
 
 inline v2
@@ -46,23 +46,23 @@ Perp(v2 v)
 }
 
 inline v2
-V2(real32 x, real32 y)
+V2(f32 x, f32 y)
 {
   v2 result = { x, y };
   return result;
 }
 
 inline v2
-V2(int32 x, int32 y)
+V2(i32 x, i32 y)
 {
-  v2 result = { (real32)x, (real32)y };
+  v2 result = { (f32)x, (f32)y };
   return result;
 }
 
 inline v2
-V2(uint32 x, uint32 y)
+V2(u32 x, u32 y)
 {
-  v2 result = { (real32)x, (real32)y };
+  v2 result = { (f32)x, (f32)y };
   return result;
 }
 
@@ -108,30 +108,30 @@ operator-=(v2 &a, v2 b)
 }
 
 inline v2
-operator*(real32 a, v2 b)
+operator*(f32 a, v2 b)
 {
   v2 result = { a * b.x, a * b.y };
   return result;
 }
 
 inline v2
-operator*(v2 b, real32 a)
+operator*(v2 b, f32 a)
 {
   v2 result = a * b;
   return result;
 }
 
 inline v2
-operator*=(v2 &a, real32 b)
+operator*=(v2 &a, f32 b)
 {
   a = b * a;
   return a;
 }
 
-inline real32
+inline f32
 Inner(v2 a, v2 b)
 {
-  real32 result = a.x * b.x + a.y * b.y;
+  f32 result = a.x * b.x + a.y * b.y;
   return result;
 }
 
@@ -142,17 +142,17 @@ Hadamard(v2 a, v2 b)
   return result;
 }
 
-inline real32
+inline f32
 LengthSq(v2 a)
 {
-  real32 result = Inner(a, a);
+  f32 result = Inner(a, a);
   return result;
 }
 
-inline real32
+inline f32
 Length(v2 a)
 {
-  real32 result = SquareRoot(LengthSq(a));
+  f32 result = SquareRoot(LengthSq(a));
   return result;
 }
 
@@ -169,34 +169,27 @@ IsZero(v2 a)
 
 union v3 {
   struct {
-    real32 x, y, z;
+    f32 x, y, z;
   };
   struct {
-    real32 r, g, b;
+    f32 r, g, b;
   };
   struct {
     v2 xy;
-    real32 _ignored;
+    f32 _ignored;
   };
-  real32 e[2];
+  f32 e[2];
 };
 
 inline v3
-V3(real32 x, real32 y, real32 z)
+V3(f32 x, f32 y, f32 z)
 {
   v3 result = { x, y, z };
   return result;
 }
 
 inline v3
-V3(int x, int y, int z)
-{
-  v3 result = { (real32)x, (real32)y, (real32)z };
-  return result;
-}
-
-inline v3
-V3(v2 xy, real32 z)
+V3(v2 xy, f32 z)
 {
   v3 result = { xy.x, xy.y, z };
   return result;
@@ -247,30 +240,30 @@ operator-=(v3 &a, v3 b)
 }
 
 inline v3
-operator*(real32 a, v3 b)
+operator*(f32 a, v3 b)
 {
   v3 result = { a * b.x, a * b.y, a * b.z };
   return result;
 }
 
 inline v3
-operator*(v3 b, real32 a)
+operator*(v3 b, f32 a)
 {
   v3 result = a * b;
   return result;
 }
 
 inline v3
-operator*=(v3 &a, real32 b)
+operator*=(v3 &a, f32 b)
 {
   a = b * a;
   return a;
 }
 
-inline real32
+inline f32
 Inner(v3 a, v3 b)
 {
-  real32 result = a.x * b.x + a.y * b.y + a.z * b.z;
+  f32 result = a.x * b.x + a.y * b.y + a.z * b.z;
   return result;
 }
 
@@ -281,17 +274,17 @@ Hadamard(v3 a, v3 b)
   return result;
 }
 
-inline real32
+inline f32
 LengthSq(v3 a)
 {
-  real32 result = Inner(a, a);
+  f32 result = Inner(a, a);
   return result;
 }
 
-inline real32
+inline f32
 Length(v3 a)
 {
-  real32 result = SquareRoot(LengthSq(a));
+  f32 result = SquareRoot(LengthSq(a));
   return result;
 }
 
@@ -308,27 +301,27 @@ IsZero(v3 a)
 
 union v4 {
   struct {
-    real32 x, y, z, w;
+    f32 x, y, z, w;
   };
   struct {
-    real32 r, g, b, a;
+    f32 r, g, b, a;
   };
   struct {
     v3 rgb;
-    real32 alpha;
+    f32 alpha;
   };
-  real32 e[4];
+  f32 e[4];
 };
 
 inline v4
-V4(real32 x, real32 y, real32 z, real32 w)
+V4(f32 x, f32 y, f32 z, f32 w)
 {
   v4 result = { x, y, z, w };
   return result;
 }
 
 inline v4
-V4(v3 v, real32 w)
+V4(v3 v, f32 w)
 {
   v4 result = { v.x, v.y, v.z, w };
   return result;
@@ -382,28 +375,28 @@ operator-=(v4 &a, v4 b)
 }
 
 inline v4
-operator*(real32 a, v4 b)
+operator*(f32 a, v4 b)
 {
   v4 result = { a * b.x, a * b.y, a * b.z, a * b.w };
   return result;
 }
 
 inline v4
-operator*(v4 b, real32 a)
+operator*(v4 b, f32 a)
 {
   v4 result = a * b;
   return result;
 }
 
 inline v4
-operator*=(v4 &a, real32 b)
+operator*=(v4 &a, f32 b)
 {
   a = b * a;
   return a;
 }
 
 inline v4
-Lerp(v4 a, real32 t, v4 b)
+Lerp(v4 a, f32 t, v4 b)
 {
   v4 result = (1 - t) * a + t * b;
   return result;
@@ -413,10 +406,10 @@ Lerp(v4 a, real32 t, v4 b)
 // misc
 //
 
-inline real32
-SafeRatioN(real32 numerator, real32 divider, real32 n)
+inline f32
+SafeRatioN(f32 numerator, f32 divider, f32 n)
 {
-  real32 result = n;
+  f32 result = n;
 
   if(divider != 0) {
     result = numerator / divider;
@@ -425,17 +418,17 @@ SafeRatioN(real32 numerator, real32 divider, real32 n)
   return result;
 }
 
-inline real32
-SafeRatio0(real32 numerator, real32 divider)
+inline f32
+SafeRatio0(f32 numerator, f32 divider)
 {
-  real32 result = SafeRatioN(numerator, divider, 0);
+  f32 result = SafeRatioN(numerator, divider, 0);
   return result;
 }
 
-inline real32
-Clamp(real32 v, real32 min, real32 max)
+inline f32
+Clamp(f32 v, f32 min, f32 max)
 {
-  real32 result = v;
+  f32 result = v;
   if(result < min) {
     result = min;
   }
@@ -445,10 +438,10 @@ Clamp(real32 v, real32 min, real32 max)
   return result;
 }
 
-inline real32
-Clamp01(real32 v)
+inline f32
+Clamp01(f32 v)
 {
-  real32 result = Clamp(v, 0, 1);
+  f32 result = Clamp(v, 0, 1);
   return result;
 }
 
@@ -471,10 +464,10 @@ Clamp01(v3 v)
   return result;
 }
 
-inline real32
-Lerp(real32 a, real32 t, real32 b)
+inline f32
+Lerp(f32 a, f32 t, f32 b)
 {
-  real32 result = (1 - t) * a + t * b;
+  f32 result = (1 - t) * a + t * b;
   return result;
 }
 
@@ -493,7 +486,6 @@ RectMinMax(v2 min, v2 max)
   rectangle2 result = {};
   result.min = min;
   result.max = max;
-
   return result;
 }
 
