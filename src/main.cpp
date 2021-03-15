@@ -14,6 +14,42 @@ struct sphere {
   v3 color;
 };
 
+enum light_type {
+  LightType_Ambient,
+  LightType_Point,
+  LightType_Directional,
+};
+
+struct light_struct {
+  light_type type;
+  f32 intensity;
+  v3 position; // used for point
+  v3 direction; // used for directional
+};
+
+f32
+ComputeLighting(v3 point, v3 normal, light_struct *lights, int count)
+{
+  f32 result = 0.0f;
+  for(int lightIndex = 0; lightIndex < count; lightIndex++) {
+    light_struct *light = lights + lightIndex;
+
+    if(light->type == LightType_Ambient) {
+      result += light->intensity;
+    } else {
+      v3 l = light->type == LightType_Point ? light->position - point
+                                            : light->direction;
+
+      f32 nDotL = Inner(normal, l);
+      if(nDotL > 0) {
+        result += (light->intensity * nDotL) / (Length(normal) * Length(l));
+      }
+    }
+  }
+
+  return result;
+}
+
 inline v3
 CanvasToViewport(v2 vp,
   int x,
@@ -59,6 +95,23 @@ RayTrace(sphere *spheres, int count, v3 origin, v3 point, f32 tMin, f32 tMax)
   f32 closestT = INF;
   sphere *closestSphere = NULL;
 
+  light_struct lights[] = {
+    {
+      .type = LightType_Ambient,
+      .intensity = 0.2f,
+    },
+    {
+      .type = LightType_Point,
+      .intensity = 0.6f,
+      .position = V3(2, 1, 0),
+    },
+    {
+      .type = LightType_Directional,
+      .intensity = 0.2f,
+      .direction = V3(1, 4, 4),
+    },
+  };
+
   v3 backgroundColor = { 1.0f, 1.0f, 1.0f };
 
   for(int i = 0; i < count; i++) {
@@ -85,7 +138,17 @@ RayTrace(sphere *spheres, int count, v3 origin, v3 point, f32 tMin, f32 tMax)
 
   // printf("%f.%f.%f\n", point.x, point.y, point.z);
 
-  return closestSphere->color;
+  // basic
+  // return closestSphere->color;
+
+  v3 d = point - origin;
+  v3 p = origin + closestT * d;
+  v3 n = p - closestSphere->center;
+  f32 invNLength = 1.0f / Length(n);
+  n *= invNLength;
+
+  return closestSphere->color
+    * ComputeLighting(p, n, lights, ArrayCount(lights));
 }
 
 inline u32
@@ -99,6 +162,7 @@ ColorToRGBA(v3 color)
   return result;
 }
 
+// NOTE: y is top-down
 void
 PutPixel(void *memory, int pitch, int width, int height, int x, int y, v3 color)
 {
@@ -129,7 +193,7 @@ RenderTestGradient(void *memory, int pitch, int width, int height)
 }
 
 void
-RenderRayTracing(void *memory, int pitch, int width, int height)
+RayTracing(void *memory, int pitch, int width, int height)
 {
   v3 origin = { 0.0f, 0.0f, 0.0f };
 
@@ -190,8 +254,7 @@ main()
   int pitch;
   SDL_LockTexture(texture, NULL, &rawPixels, &pitch);
 
-  // NOTE: y is top-down
-  RenderRayTracing(rawPixels, pitch, WIDTH, HEIGHT);
+  RayTracing(rawPixels, pitch, WIDTH, HEIGHT);
   // RenderTestGradient(rawPixels, pitch, WIDTH, HEIGHT);
 
   SDL_UnlockTexture(texture);
