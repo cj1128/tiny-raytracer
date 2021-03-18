@@ -8,10 +8,11 @@
 
 #define INF 999999.0f
 
-struct sphere {
+struct s_sphere {
   v3 center;
   f32 radius;
   v3 color;
+  int specular; // 0 means turn off
 };
 
 enum light_type {
@@ -20,7 +21,7 @@ enum light_type {
   LightType_Directional,
 };
 
-struct light_struct {
+struct s_light {
   light_type type;
   f32 intensity;
   v3 position; // used for point
@@ -28,11 +29,16 @@ struct light_struct {
 };
 
 f32
-ComputeLighting(v3 point, v3 normal, light_struct *lights, int count)
+ComputeLighting(v3 point,
+  v3 normal,
+  v3 v,
+  s_light *lights,
+  int lightCount,
+  int specular)
 {
   f32 result = 0.0f;
-  for(int lightIndex = 0; lightIndex < count; lightIndex++) {
-    light_struct *light = lights + lightIndex;
+  for(int lightIndex = 0; lightIndex < lightCount; lightIndex++) {
+    s_light *light = lights + lightIndex;
 
     if(light->type == LightType_Ambient) {
       result += light->intensity;
@@ -40,9 +46,20 @@ ComputeLighting(v3 point, v3 normal, light_struct *lights, int count)
       v3 l = light->type == LightType_Point ? light->position - point
                                             : light->direction;
 
+      // diffuse
       f32 nDotL = Inner(normal, l);
       if(nDotL > 0) {
         result += (light->intensity * nDotL) / (Length(normal) * Length(l));
+      }
+
+      // specular
+      if(specular != 0) {
+        v3 r = 2 * normal * nDotL - l;
+        f32 rDotV = Inner(r, v);
+        if(rDotV > 0) {
+          result += light->intensity
+            * Pow(rDotV / (Length(r) * Length(v)), (f32)specular);
+        }
       }
     }
   }
@@ -50,8 +67,8 @@ ComputeLighting(v3 point, v3 normal, light_struct *lights, int count)
   return result;
 }
 
-inline v3
-CanvasToViewport(v2 vp,
+v3
+CanvasToViewport(v2 viewSize,
   int x,
   int y,
   int canvsWidth,
@@ -59,15 +76,15 @@ CanvasToViewport(v2 vp,
   f32 projectionD)
 {
   v3 result = {};
-  result.x = ((f32)x / (f32)canvsWidth) * vp.width;
-  result.y = ((f32)y / (f32)canvasHeight) * vp.height;
+  result.x = ((f32)x / (f32)canvsWidth) * viewSize.width;
+  result.y = ((f32)y / (f32)canvasHeight) * viewSize.height;
   result.z = projectionD;
 
   return result;
 }
 
 v2
-IntersectRaySphere(v3 origin, v3 point, sphere *s)
+IntersectRaySphere(v3 origin, v3 point, s_sphere *s)
 {
   v3 d = point - origin;
   v3 co = origin - s->center;
@@ -90,12 +107,12 @@ IntersectRaySphere(v3 origin, v3 point, sphere *s)
 }
 
 v3
-RayTrace(sphere *spheres, int count, v3 origin, v3 point, f32 tMin, f32 tMax)
+RayTrace(s_sphere *spheres, int count, v3 origin, v3 vp, f32 tMin, f32 tMax)
 {
   f32 closestT = INF;
-  sphere *closestSphere = NULL;
+  s_sphere *closestSphere = NULL;
 
-  light_struct lights[] = {
+  s_light lights[] = {
     {
       .type = LightType_Ambient,
       .intensity = 0.2f,
@@ -115,8 +132,8 @@ RayTrace(sphere *spheres, int count, v3 origin, v3 point, f32 tMin, f32 tMax)
   v3 backgroundColor = { 1.0f, 1.0f, 1.0f };
 
   for(int i = 0; i < count; i++) {
-    sphere *s = spheres + i;
-    v2 intersectResult = IntersectRaySphere(origin, point, s);
+    s_sphere *s = spheres + i;
+    v2 intersectResult = IntersectRaySphere(origin, vp, s);
 
     f32 v = intersectResult.e[0];
 
@@ -136,19 +153,27 @@ RayTrace(sphere *spheres, int count, v3 origin, v3 point, f32 tMin, f32 tMax)
     return backgroundColor;
   }
 
-  // printf("%f.%f.%f\n", point.x, point.y, point.z);
+  // printf("%f.%f.%f\n", vp.x, vp.y, vp.z);
 
   // basic
   // return closestSphere->color;
 
-  v3 d = point - origin;
-  v3 p = origin + closestT * d;
-  v3 n = p - closestSphere->center;
+  v3 d = vp - origin;
+  v3 point = origin + closestT * d;
+  v3 n = point - closestSphere->center;
+  v3 v = origin - point;
   f32 invNLength = 1.0f / Length(n);
   n *= invNLength;
 
-  return closestSphere->color
-    * ComputeLighting(p, n, lights, ArrayCount(lights));
+  v3 color = Clamp01(closestSphere->color
+    * ComputeLighting(point,
+      n,
+      v,
+      lights,
+      ArrayCount(lights),
+      closestSphere->specular));
+
+  return color;
 }
 
 inline u32
@@ -193,41 +218,58 @@ RenderTestGradient(void *memory, int pitch, int width, int height)
 }
 
 void
-RayTracing(void *memory, int pitch, int width, int height)
+RenderRayTracking(void *memory, int pitch, int canvasWidth, int canvasHeight)
 {
   v3 origin = { 0.0f, 0.0f, 0.0f };
 
-  v2 vp = { 1.0f, 1.0f };
+  v2 viewSize = { 1.0f, 1.0f };
   f32 projectionD = 1.0f;
 
-  sphere spheres[3];
+  s_sphere spheres[4] = {
+    {
+      .center = V3(0, -1, 3),
+      .radius = 1.0f,
+      .color = V3(1, 0, 0), // red
+      .specular = 500, // shiny
+    },
+    {
+      .center = V3(2, 0, 4),
+      .radius = 1.0f,
+      .color = V3(0, 0, 1), // blue
+      .specular = 500, // shiny
+    },
+    {
+      .center = V3(-2, 0, 4),
+      .radius = 1.0f,
+      .color = V3(0, 1, 0), // green
+      .specular = 10, // somewhat shiny
+    },
+    {
+      .center = V3(0, -5001, 0),
+      .radius = 5000.0f,
+      .color = V3(1, 1, 0), // yellow
+      .specular = 1000, // very shiny
+    },
+  };
 
-  spheres[0].center = V3(0, -1, 3);
-  spheres[0].radius = 1;
-  spheres[0].color = V3(1.0f, 0.0f, 0.0f); // red
+  Assert(canvasWidth % 2 == 0);
+  Assert(canvasHeight % 2 == 0);
 
-  spheres[1].center = V3(2, 0, 4);
-  spheres[1].radius = 1;
-  spheres[1].color = V3(0.0f, 0.0f, 1.0f); // blue
-
-  spheres[2].center = V3(-2, 0, 4);
-  spheres[2].radius = 1;
-  spheres[2].color = V3(0.0f, 1.0f, 0.0f); // green
-
-  Assert(width % 2 == 0);
-  Assert(height % 2 == 0);
-
-  int halfWidth = width / 2;
-  int halfHeight = height / 2;
+  int halfWidth = canvasWidth / 2;
+  int halfHeight = canvasHeight / 2;
 
   for(int x = -halfWidth; x < halfWidth; x++) {
     for(int y = -halfHeight; y < halfHeight; y++) {
-      v3 point = CanvasToViewport(vp, x, y, width, height, projectionD);
+      v3 vp = CanvasToViewport(viewSize,
+        x,
+        y,
+        canvasWidth,
+        canvasHeight,
+        projectionD);
 
-      v3 color
-        = RayTrace(spheres, ArrayCount(spheres), origin, point, 1.0f, INF);
+      v3 color = RayTrace(spheres, ArrayCount(spheres), origin, vp, 1.0f, INF);
 
-      PutPixel(memory, pitch, width, height, x, y, color);
+      PutPixel(memory, pitch, canvasWidth, canvasHeight, x, y, color);
     }
   }
 }
@@ -254,7 +296,7 @@ main()
   int pitch;
   SDL_LockTexture(texture, NULL, &rawPixels, &pitch);
 
-  RayTracing(rawPixels, pitch, WIDTH, HEIGHT);
+  RenderRayTracking(rawPixels, pitch, WIDTH, HEIGHT);
   // RenderTestGradient(rawPixels, pitch, WIDTH, HEIGHT);
 
   SDL_UnlockTexture(texture);

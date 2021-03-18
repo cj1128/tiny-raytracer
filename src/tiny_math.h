@@ -4,6 +4,13 @@
 #include <math.h>
 
 inline f32
+Pow(f32 value, f32 pow)
+{
+  f32 result = powf(value, pow);
+  return result;
+}
+
+inline f32
 SquareRoot(f32 value)
 {
   f32 result = sqrtf(value);
